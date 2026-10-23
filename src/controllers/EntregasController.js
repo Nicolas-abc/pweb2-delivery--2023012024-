@@ -1,74 +1,101 @@
 class EntregasController {
-  constructor(service) { 
-    this.service = service; 
+  constructor(entregasService) {
+    this.entregasService = entregasService;
   }
 
-  criar(req, res) {
-    try { 
-      res.status(201).json(this.service.criar(req.body)); 
-    } catch (err) { 
-      res.status(err.status || 500).json({ erro: err.message }); 
+  async criar(req, res, next) {
+    try {
+      const entrega = await this.entregasService.criar(req.body);
+      return res.status(201).json(entrega);
+    } catch (error) {
+      next(error);
     }
   }
 
-  listar(req, res) {
-    try { 
-      const statusFiltro = req.query ? req.query.status : undefined;
-      res.status(200).json(this.service.listar(statusFiltro)); 
-    } catch (err) { 
-      res.status(err.status || 500).json({ erro: err.message }); 
+  async listar(req, res, next) {
+    try {
+      const entregas = await this.entregasService.listar(req.query);
+      return res.status(200).json(entregas);
+    } catch (error) {
+      next(error);
     }
   }
 
-  buscarPorId(req, res) {
-    try { 
-      res.status(200).json(this.service.buscarPorId(req.params.id)); 
-    } catch (err) { 
-      res.status(err.status || 500).json({ erro: err.message }); 
+  async buscarPorId(req, res, next) {
+    try {
+      const { id } = req.params;
+      const entrega = await this.entregasService.buscarPorId(id);
+      if (!entrega) {
+        return res.status(404).json({ erro: 'Entrega não encontrada' });
+      }
+      return res.status(200).json(entrega);
+    } catch (error) {
+      next(error);
     }
   }
 
-  avancar(req, res) {
-    try { 
-      res.status(200).json(this.service.avancar(req.params.id)); 
-    } catch (err) { 
-      res.status(err.status || 500).json({ erro: err.message }); 
+  async avancar(req, res, next) {
+    try {
+      const { id } = req.params;
+      const entrega = await this.entregasService.avancar(id);
+      return res.status(200).json(entrega);
+    } catch (error) {
+      next(error);
     }
   }
 
-  cancelar(req, res) {
-    try { 
-      res.status(200).json(this.service.cancelar(req.params.id)); 
-    } catch (err) { 
-      res.status(err.status || 500).json({ erro: err.message }); 
+  async cancelar(req, res, next) {
+    try {
+      const { id } = req.params;
+      const entrega = await this.entregasService.cancelar(id);
+      return res.status(200).json(entrega);
+    } catch (error) {
+      next(error);
     }
   }
 
-  historico(req, res) {
-    try { 
-      const fn = this.service.historico || this.service.obterHistorico;
-      res.status(200).json(fn.call(this.service, req.params.id)); 
-    } catch (err) { 
-      res.status(err.status || 500).json({ erro: err.message }); 
-    }
-  }
-
-  atribuir(req, res) {
+  async atribuir(req, res, next) {
     try {
       const body = req.body || {};
-      let motoristaId;
-      if (typeof body === 'number' || typeof body === 'string') {
-        motoristaId = body;
-      } else if (body && typeof body === 'object') {
-        motoristaId = body.motoristaId ?? body.motorista_id ?? body.id ?? body.motorista;
-        if (motoristaId && typeof motoristaId === 'object') {
-          motoristaId = motoristaId.id ?? motoristaId.motoristaId;
-        }
+      const params = req.params || {};
+
+      // Busca entregaId na URL ou no corpo
+      const entregaId =
+        params.id ??
+        body.entregaId ??
+        body.entrega_id ??
+        body.idEntrega ??
+        body.id_entrega ??
+        body.id;
+
+      // Busca motoristaId no corpo ou nos parâmetros
+      const motoristaId =
+        body.motoristaId ??
+        body.motorista_id ??
+        body.idMotorista ??
+        body.id_motorista ??
+        params.motoristaId ??
+        (typeof body.motorista === 'object' && body.motorista !== null
+          ? body.motorista.id
+          : body.motorista);
+
+      const entrega = await this.entregasService.atribuir(entregaId, motoristaId);
+      return res.status(200).json(entrega);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async historico(req, res, next) {
+    try {
+      const { id } = req.params;
+      const historico = await this.entregasService.buscarHistorico(id);
+      if (!historico) {
+        return res.status(404).json({ erro: 'Histórico não encontrado' });
       }
-      
-      res.status(200).json(this.service.atribuirMotorista(req.params.id, motoristaId));
-    } catch (err) {
-      res.status(err.status || 500).json({ erro: err.message });
+      return res.status(200).json(historico);
+    } catch (error) {
+      next(error);
     }
   }
 }

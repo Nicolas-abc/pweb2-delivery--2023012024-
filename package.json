@@ -2,13 +2,18 @@
   "name": "pweb2-delivery-cap04",
   "version": "1.0.0",
   "description": "Delivery Tracker — Exercício do Cap. 4 (arquitetura em camadas + Repository/DI).",
-  
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "check": "node autograder/check.mjs"
+    "check": "node autograder/check.mjs",
+    "postinstall": "prisma skills sync || exit 0",
+    "prisma": "prisma,"
   },
   "dependencies": {
+    "@prisma/client": "^5.22.0",
     "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0"
   }
 }

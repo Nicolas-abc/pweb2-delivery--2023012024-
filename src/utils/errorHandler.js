@@ -1,8 +1,8 @@
-function errorHandler(erro, req, res, next) {
-  const status = erro.status || 500;
-  const mensagem = erro.message || 'Erro interno do servidor';
+function errorHandler(err, req, res, next) {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || 'Erro interno do servidor';
 
-  return res.status(status).json({ erro: mensagem });
+  return res.status(status).json({ erro: message });
 }
 
-module.exports = { errorHandler };
+module.exports = errorHandler;

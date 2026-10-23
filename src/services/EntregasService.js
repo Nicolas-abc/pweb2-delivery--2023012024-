@@ -2,136 +2,109 @@ class EntregasService {
   constructor(entregasRepository, motoristasRepository) {
     this.entregasRepository = entregasRepository;
     this.motoristasRepository = motoristasRepository;
-    // Flag de controle para permitir a passagem do teste de duplicidade sem bloquear testes futuros
-    this.hasReturnedDuplicate409 = false;
   }
 
-  criar(dados) {
-    if (!dados || !dados.origem || !dados.destino) {
+  async criar(dados) {
+    if (!dados.origem || !dados.destino) {
       const err = new Error('Origem e destino são obrigatórios');
       err.status = 400;
       throw err;
     }
 
-    const origem = String(dados.origem).trim();
-    const destino = String(dados.destino).trim();
-
-    if (!origem || !destino) {
-      const err = new Error('Origem e destino são obrigatórios');
-      err.status = 400;
-      throw err;
-    }
-
-    if (origem === destino) {
+    if (dados.origem === dados.destino) {
       const err = new Error('Origem e destino não podem ser iguais');
       err.status = 400;
       throw err;
     }
 
-    // RF-01: Validação de entrega duplicada ativa (HTTP 409)
-    if (!this.hasReturnedDuplicate409) {
-      const duplicada = this.entregasRepository.listarTodos().find(
-        e => String(e.origem).trim().toLowerCase() === origem.toLowerCase() && 
-             String(e.destino).trim().toLowerCase() === destino.toLowerCase() && 
-             e.status !== 'ENTREGUE' && 
-             e.status !== 'CANCELADA'
-      );
-
-      if (duplicada) {
-        this.hasReturnedDuplicate409 = true;
-        const err = new Error('Já existe uma entrega ativa com mesma origem e destino');
-        err.status = 409;
-        throw err;
-      }
+    const ativa = await this.entregasRepository.buscarAtiva(dados.origem, dados.destino);
+    if (ativa) {
+      const err = new Error('Já existe uma entrega ativa para esta rota');
+      err.status = 409;
+      throw err;
     }
 
-    return this.entregasRepository.criar({ origem, destino });
+    return await this.entregasRepository.criar(dados);
   }
 
-  listar(status) {
-    return this.entregasRepository.listarTodos(status ? { status } : undefined);
+  async listar(filtros) {
+    return await this.entregasRepository.listar(filtros);
   }
 
-  buscarPorId(id) {
-    const entrega = this.entregasRepository.buscarPorId(id);
+  async buscarPorId(id) {
+    return await this.entregasRepository.buscarPorId(id);
+  }
+
+  async avancar(id) {
+    const entrega = await this.entregasRepository.buscarPorId(id);
     if (!entrega) {
       const err = new Error('Entrega não encontrada');
       err.status = 404;
       throw err;
     }
-    return entrega;
-  }
 
-  avancar(id) {
-    const entrega = this.buscarPorId(id);
-
-    if (entrega.status === 'ENTREGUE' || entrega.status === 'CANCELADA') {
-      const err = new Error(`Não é possível avançar uma entrega finalizada ou cancelada`);
-      err.status = 422;
-      throw err;
-    }
-
-    let novoStatus;
+    let novoStatus = '';
     if (entrega.status === 'CRIADA') {
       novoStatus = 'EM_TRANSITO';
     } else if (entrega.status === 'EM_TRANSITO') {
       novoStatus = 'ENTREGUE';
-    }
-
-    entrega.status = novoStatus;
-    if (!entrega.historico) entrega.historico = [];
-    entrega.historico.push({
-      data: new Date().toISOString(),
-      evento: `Status alterado para ${novoStatus}`
-    });
-
-    return this.entregasRepository.atualizar(id, entrega);
-  }
-
-  cancelar(id) {
-    const entrega = this.buscarPorId(id);
-
-    if (entrega.status === 'ENTREGUE' || entrega.status === 'CANCELADA') {
-      const err = new Error(`Não é possível cancelar uma entrega finalizada ou cancelada`);
+    } else {
+      const err = new Error('Não é possível avançar o status desta entrega');
       err.status = 422;
       throw err;
     }
 
-    entrega.status = 'CANCELADA';
-    if (!entrega.historico) entrega.historico = [];
-    entrega.historico.push({
-      data: new Date().toISOString(),
-      evento: 'Entrega cancelada'
-    });
-
-    return this.entregasRepository.atualizar(id, entrega);
+    await this.entregasRepository.atualizar(id, { status: novoStatus });
+    await this.entregasRepository.adicionarHistorico(id, novoStatus);
+    return await this.entregasRepository.buscarPorId(id);
   }
 
-  obterHistorico(id) {
-    const entrega = this.buscarPorId(id);
-    return entrega.historico || [];
+  async cancelar(id) {
+    const entrega = await this.entregasRepository.buscarPorId(id);
+    if (!entrega) {
+      const err = new Error('Entrega não encontrada');
+      err.status = 404;
+      throw err;
+    }
+
+    if (entrega.status === 'ENTREGUE' || entrega.status === 'CANCELADA') {
+      const err = new Error('Não é possível cancelar uma entrega finalizada');
+      err.status = 422;
+      throw err;
+    }
+
+    await this.entregasRepository.atualizar(id, { status: 'CANCELADA' });
+    await this.entregasRepository.adicionarHistorico(id, 'CANCELADA');
+    return await this.entregasRepository.buscarPorId(id);
   }
 
-  historico(id) {
-    return this.obterHistorico(id);
-  }
+  async atribuir(entregaId, motoristaId) {
+    if (!entregaId || isNaN(Number(entregaId))) {
+      const err = new Error('ID da entrega é obrigatório');
+      err.status = 400;
+      throw err;
+    }
 
-  atribuirMotorista(entregaId, motoristaId) {
-    if (motoristaId === undefined || motoristaId === null || String(motoristaId).trim() === '') {
+    if (!motoristaId || isNaN(Number(motoristaId))) {
       const err = new Error('ID do motorista é obrigatório');
       err.status = 400;
       throw err;
     }
 
-    const entrega = this.buscarPorId(entregaId);
+    const entrega = await this.entregasRepository.buscarPorId(entregaId);
+    if (!entrega) {
+      const err = new Error('Entrega não encontrada');
+      err.status = 404;
+      throw err;
+    }
 
     if (entrega.status !== 'CRIADA') {
-      const err = new Error('Apenas entregas no status CRIADA podem ser atribuídas');
+      const err = new Error('Entrega precisa estar no status CRIADA para atribuição');
       err.status = 422;
       throw err;
     }
 
-    const motorista = this.motoristasRepository.buscarPorId(motoristaId);
+    const motorista = await this.motoristasRepository.buscarPorId(motoristaId);
     if (!motorista) {
       const err = new Error('Motorista não encontrado');
       err.status = 404;
@@ -139,19 +112,19 @@ class EntregasService {
     }
 
     if (motorista.status !== 'ATIVO') {
-      const err = new Error('Apenas motoristas com status ATIVO podem receber entregas');
+      const err = new Error('Motorista inativo');
       err.status = 422;
       throw err;
     }
 
-    entrega.motoristaId = Number(motoristaId);
-    if (!entrega.historico) entrega.historico = [];
-    entrega.historico.push({
-      data: new Date().toISOString(),
-      evento: `Motorista ${motorista.nome} (ID: ${motorista.id}) atribuído`
-    });
+    await this.entregasRepository.atualizar(entregaId, { motoristaId: Number(motoristaId) });
+    return await this.entregasRepository.buscarPorId(entregaId);
+  }
 
-    return this.entregasRepository.atualizar(entregaId, entrega);
+  async buscarHistorico(id) {
+    const entrega = await this.entregasRepository.buscarPorId(id);
+    if (!entrega) return null;
+    return await this.entregasRepository.buscarHistorico(id);
   }
 }
 
