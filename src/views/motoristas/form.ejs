@@ -1,0 +1,27 @@
+<div class="card">
+  <h1><%= title %></h1>
+
+  <% if (errors && errors.length) { %>
+    <% errors.forEach((error) => { %>
+      <div class="alert alert-error"><%= error.msg %></div>
+    <% }) %>
+  <% } %>
+
+  <form method="POST" action="/motoristas">
+    <div class="form-grid">
+      <div class="field">
+        <label for="nome">Nome</label>
+        <input id="nome" name="nome" value="<%= formData.nome || '' %>" required />
+      </div>
+      <div class="field">
+        <label for="cpf">CPF</label>
+        <input id="cpf" name="cpf" value="<%= formData.cpf || '' %>" required />
+      </div>
+    </div>
+
+    <div class="section actions">
+      <button class="btn btn-primary" type="submit">Salvar</button>
+      <a class="btn btn-secondary" href="/motoristas">Voltar</a>
+    </div>
+  </form>
+</div>

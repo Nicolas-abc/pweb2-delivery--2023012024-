@@ -1,0 +1,14 @@
+<% const successMessages = typeof success_msg !== 'undefined' ? success_msg : []; %>
+<% const errorMessages = typeof error_msg !== 'undefined' ? error_msg : []; %>
+
+<% if (successMessages && successMessages.length) { %>
+  <% successMessages.forEach((msg) => { %>
+    <div class="alert alert-success"><%= msg %></div>
+  <% }) %>
+<% } %>
+
+<% if (errorMessages && errorMessages.length) { %>
+  <% errorMessages.forEach((msg) => { %>
+    <div class="alert alert-error"><%= msg %></div>
+  <% }) %>
+<% } %>

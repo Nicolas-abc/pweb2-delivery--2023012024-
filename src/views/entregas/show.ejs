@@ -1,0 +1,47 @@
+<div class="card">
+  <div class="row">
+    <h1>Entrega #<%= entrega.id %></h1>
+    <a class="btn btn-secondary" href="/entregas">Voltar</a>
+  </div>
+
+  <p><strong>Descrição:</strong> <%= entrega.descricao || 'Sem descrição' %></p>
+  <p><strong>Origem:</strong> <%= entrega.origem %></p>
+  <p><strong>Destino:</strong> <%= entrega.destino %></p>
+  <p><strong>Status:</strong> <span class="badge badge-<%= entrega.status.toLowerCase().replace(/_/g, '-') %>"><%= entrega.status %></span></p>
+  <p><strong>Motorista:</strong> <%= entrega.motorista ? entrega.motorista.nome : 'Sem motorista' %></p>
+
+  <div class="section">
+    <h3>Atribuir motorista</h3>
+    <form action="/entregas/<%= entrega.id %>/atribuir?_method=PATCH" method="POST">
+      <div class="form-grid">
+        <div class="field">
+          <label for="motoristaId">Motorista</label>
+          <select id="motoristaId" name="motoristaId">
+            <option value="">Selecione</option>
+            <% motoristas.forEach((motorista) => { %>
+              <option value="<%= motorista.id %>" <%= entrega.motorista && entrega.motorista.id === motorista.id ? 'selected' : '' %>>
+                <%= motorista.nome %> - <%= motorista.cpf %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+      <div class="section actions">
+        <button class="btn btn-primary" type="submit">Atribuir</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="section">
+    <h3>Histórico</h3>
+    <% if (!historico || historico.length === 0) { %>
+      <p class="muted">Nenhum evento no histórico.</p>
+    <% } else { %>
+      <ul>
+        <% historico.forEach((item) => { %>
+          <li><%= new Date(item.data).toLocaleString() %> — <%= item.evento %></li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </div>
+</div>

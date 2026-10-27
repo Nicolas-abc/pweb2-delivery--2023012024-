@@ -21,6 +21,7 @@ function formatEntrega(entrega) {
 
   return {
     id: entrega.id,
+    descricao: entrega.descricao ?? null,
     origem: entrega.origem,
     destino: entrega.destino,
     status: entrega.status,
@@ -103,6 +104,7 @@ class EntregasRepositoryPrisma {
   async criar(dados) {
     const rawMotoristaId = dados.motoristaId ?? dados.motorista_id;
     const createData = {
+      descricao: dados.descricao ? String(dados.descricao).trim() : null,
       origem: dados.origem,
       destino: dados.destino,
       status: dados.status || 'CRIADA',
@@ -148,6 +150,7 @@ class EntregasRepositoryPrisma {
   async atualizar(id, dados) {
     const dataToUpdate = {};
     if (dados.status !== undefined) dataToUpdate.status = dados.status;
+    if (dados.descricao !== undefined) dataToUpdate.descricao = dados.descricao ? String(dados.descricao).trim() : null;
     if (dados.origem !== undefined) dataToUpdate.origem = dados.origem;
     if (dados.destino !== undefined) dataToUpdate.destino = dados.destino;
 

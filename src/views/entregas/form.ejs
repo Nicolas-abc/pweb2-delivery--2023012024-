@@ -1,0 +1,31 @@
+<div class="card">
+  <h1><%= title %></h1>
+
+  <% if (errors && errors.length) { %>
+    <% errors.forEach((error) => { %>
+      <div class="alert alert-error"><%= error.msg %></div>
+    <% }) %>
+  <% } %>
+
+  <form method="POST" action="/entregas">
+    <div class="form-grid">
+      <div class="field" style="grid-column: 1 / -1;">
+        <label for="descricao">Descrição</label>
+        <input id="descricao" name="descricao" value="<%= formData.descricao || '' %>" required />
+      </div>
+      <div class="field">
+        <label for="origem">Origem</label>
+        <input id="origem" name="origem" value="<%= formData.origem || '' %>" required />
+      </div>
+      <div class="field">
+        <label for="destino">Destino</label>
+        <input id="destino" name="destino" value="<%= formData.destino || '' %>" required />
+      </div>
+    </div>
+
+    <div class="section actions">
+      <button class="btn btn-primary" type="submit">Salvar</button>
+      <a class="btn btn-secondary" href="/entregas">Voltar</a>
+    </div>
+  </form>
+</div>
