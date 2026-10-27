@@ -21,8 +21,10 @@ jobs:
       - name: Instalar dependências
         run: npm install --no-audit --no-fund
 
-      - name: Subir o servidor
+      - name: Resetar banco e subir o servidor
         run: |
+          rm -f dev.db prisma/dev.db
+          npx prisma migrate reset --force
           PORT=3000 npm start &
           sleep 2
 
